@@ -814,6 +814,34 @@ func mutate(asttree map[uint64][]byte, root uint64, sawmap *StrStrBinTree) {
 	}
 }
 
+func instantiate_type(asttree map[uint64][]byte, root uint64, gtypenames map[string]uint64) {
+	root = mapast.O(root)
+	var ok bool
+	for _, ok = asttree[root]; ok; _, ok = asttree[root] {
+		if mapast.Which(asttree[root]) == nil {
+			var typ = gtypenames[string(asttree[root])]
+			if typ != 0 {
+				copypasta(asttree, root, mapast.O(typ)+1)
+			}
+		}
+		instantiate_type(asttree, root, gtypenames)
+		root++
+	}
+}
+
+func instantiate(asttree map[uint64][]byte, root uint64, gtypenames map[string]uint64) {
+	root = mapast.O(root)
+	var ok bool
+	for _, ok = asttree[root]; ok; _, ok = asttree[root] {
+		if len(asttree[root]) > 0 && &asttree[root][0] == &mapast.RootOfType[0] {
+			instantiate_type(asttree, root, gtypenames)
+		} else {
+			instantiate(asttree, root, gtypenames)
+		}
+		root++
+	}
+}
+
 type GfuncName struct {
 	name  string
 	rhash [4]uint64
@@ -993,8 +1021,9 @@ outer:
 			var name = asttree[mapast.O(slot)]
 			name = append(name, fmt.Sprintf("%016X", checksum[1])...)
 			asttree[mapast.O(slot)] = name
-			specialize(asttree, slot, v.wildctype)
 			mutate(asttree, slot, v.argsnamedmap)
+			instantiate(asttree, slot, gtypenames)
+			specialize(asttree, slot, v.wildctype)
 			continue outer
 		}
 		break outer
