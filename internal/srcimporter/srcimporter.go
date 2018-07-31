@@ -44,6 +44,12 @@ func New(ctxt *build.Context, fset *token.FileSet, packages map[string]*types.Pa
 // for a package that is in the process of being imported.
 var importing types.Package
 
+// pkgbrowser
+func (p *Importer) Pkgbrowse() map[string]*types.Package {
+	return p.packages
+}
+
+
 // Import(path) is a shortcut for ImportFrom(path, "", 0).
 func (p *Importer) Import(path string) (*types.Package, error) {
 	return p.ImportFrom(path, "", 0)

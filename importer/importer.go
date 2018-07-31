@@ -15,6 +15,13 @@ import (
 )
 import "github.com/gopherjs/gopherjs/js"
 
+// Pkgbrowser Importer
+
+type PkgbrowserImporter interface {
+	types.ImporterFrom
+	Pkgbrowse() map[string]*types.Package
+}
+
 // A Lookup function returns a reader to access package data for
 // a given import path, or an error if no matching package is found.
 type Lookup func(path string) (io.ReadCloser, error)
@@ -38,7 +45,7 @@ type Lookup func(path string) (io.ReadCloser, error)
 // (not relative or absolute ones); it is assumed that the translation
 // to canonical import paths is being done by the client of the
 // importer.
-func For(compiler string, lookup Lookup) types.Importer {
+func For(compiler string, lookup Lookup) PkgbrowserImporter {
 	if lookup != nil {
 		panic("source importer for custom import path lookup not supported (issue #13847).")
 	}
@@ -58,6 +65,10 @@ func Path2Name(n string) string {
 
 type Foo struct{}
 
+func (f *Foo) Pkgbrowse() map[string]*types.Package {
+	return nil
+}
+
 func (f *Foo) Import(path string) (*types.Package, error) {
 
 	pkg := types.NewPackage(path, Path2Name(path))
@@ -67,9 +78,13 @@ func (f *Foo) Import(path string) (*types.Package, error) {
 	return pkg, nil
 }
 
+func (f *Foo) ImportFrom(path, srcDir string, mode types.ImportMode) (*types.Package, error) {
+	return f.ImportFrom(path, "", 0)
+}
+
 // Default returns an Importer for the compiler that built the running binary.
 // If available, the result implements types.ImporterFrom.
-func Default() types.Importer {
+func Default() PkgbrowserImporter {
 	if js.Global != nil {
 		return &Foo{}
 	} else {
